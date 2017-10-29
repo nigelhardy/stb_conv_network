@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class playerMovement : MonoBehaviour
 {
     // Use this for initialization
-    Transform player;
+    public Transform player;
     Rigidbody2D rb;
     GameManager gm;
     AudioSource audSource;
@@ -13,8 +13,8 @@ public class playerMovement : MonoBehaviour
     public AudioClip blipLower;
     public AudioClip lifeSound;
     bool ground = true;
-    bool holdingTrash = false;
-    bool holdingRecycle = false;
+    public bool holdingTrash = false;
+    public bool holdingRecycle = false;
     string inventoryName = "Inventory";
     public float runSpeed = 20f;
     public float jumpHeight = 10f;
