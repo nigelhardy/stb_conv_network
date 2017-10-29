@@ -36,19 +36,136 @@ public class LuaConvScript : MonoBehaviour {
     public double EnableMutationChance = 0.2;
 
     public double TimeoutConstant = 20;
+    private double timeout;
 
     public int MaxNodes = 1000000;
 
-    double marioX, marioY;
-
+    private double marioX, marioY;
+    //gmScript.health
+    //gmScript.gameOver
+    //gmScript.score
+    //pmScript.holdingRecycle
+    //pmScript.holdingTrash
+    class gene
+    {
+        public double into = 0;
+        // out is capitalized because out is keyword
+        public double Out = 0;
+        public double weight = 0;
+        public bool enabled = true;
+        public double innovation = 0;
+    }
+    class genome
+    {
+        public double fitness = 0;
+        public double adjustedFitness = 0;
+        //network
+        public double maxneuron = 0;
+        public double globalRank = 0;
+        public Dictionary<string, double> mutationRates = new Dictionary<string, double>();
+        public genome(double MutateConnectionsChance, double LinkMutationChance, double BiasMutationChance,
+            double NodeMutationChance, double EnableMutationChance, double DisableMutationChance, double StepSize)
+        {
+            mutationRates["connections"] = MutateConnectionsChance;
+            mutationRates["link"] = LinkMutationChance;
+            mutationRates["bias"] = BiasMutationChance;
+            mutationRates["node"] = NodeMutationChance;
+            mutationRates["enable"] = EnableMutationChance;
+            mutationRates["disable"] = DisableMutationChance;
+            mutationRates["step"] = StepSize;
+        }
+        
+    }
+    class species
+    {
+        public double topFitness = 0;
+        public double staleness = 0;
+        public double averageFitness;
+    }
+    class pool
+    {
+        public double species;
+    }
     // Use this for initialization
     void Start () {
         pmScript = GameObject.FindGameObjectWithTag("Player").GetComponent<playerMovement>();
         gmScript = GameObject.FindGameObjectWithTag("GameManager").GetComponent<GameManager>();
         tsScript = GameObject.Find("trashLocation").GetComponent<trashSpawn>();
+        // init params
         Outputs = ButtonNames.Count;
         InputSize = (BoxRadius * 2 + 1) * (BoxRadius * 2 + 1);
         Inputs = InputSize + 1;
+        timeout = TimeoutConstant;
+
+
+    }
+    // Update is called once per frame
+    void Update()
+    {
+        removeNull();
+        getPositions();
+        
+
+
+
+        if (!pmScript.ai_testing || true)
+        {
+            // only for testings, otherwise state
+            bool l = Input.GetButton("Fire1");
+            bool r = Input.GetButton("Fire2");
+            if (l)
+            {
+                state = 1;
+            }
+            else if (r)
+            {
+                state = 2;
+            }
+            else
+            {
+                state = 0;
+            }
+            stateToMovement(state);
+        }
+
+
+        
+        if (gmScript.gameOver)
+        {
+            restartLevel();
+        }
+
+    }
+
+    genome newGenome()
+    {
+        genome gen = new genome(MutateConnectionsChance, LinkMutationChance, BiasMutationChance,
+            NodeMutationChance, EnableMutationChance, DisableMutationChance, StepSize);
+
+        return gen;
+    }
+    genome copyGenome(genome g1)
+    {
+        genome gen2 = new genome(g1.mutationRates["connections"], g1.mutationRates["link"], g1.mutationRates["bias"],
+            g1.mutationRates["node"], g1.mutationRates["enable"], g1.mutationRates["disable"], g1.mutationRates["connections"]);
+        gen2.maxneuron = g1.maxneuron;
+
+        return gen2;
+    }
+    genome basicGenome()
+    {
+        // to do
+        return newGenome();
+    }
+    gene copyGene(gene g1)
+    {
+        gene g2 = new gene();
+        g2.into = g1.into;
+        g2.Out = g1.Out;
+        g2.weight = g1.weight;
+        g2.enabled = g1.enabled;
+        g2.innovation = g1.innovation;
+        return g2;
     }
     double runLuaScript()
     {
@@ -90,41 +207,6 @@ public class LuaConvScript : MonoBehaviour {
             pmScript.leftRight = 0;
         }
     }
-	// Update is called once per frame
-	void Update () {
-        removeNull();
-        if(!pmScript.ai_testing || true)
-        {
-            // only for testings, otherwise state
-            bool l = Input.GetButton("Fire1");
-            bool r = Input.GetButton("Fire2");
-            if (l)
-            {
-                state = 1;
-            }
-            else if (r)
-            {
-                state = 2;
-            }
-            else
-            {
-                state = 0;
-            }
-            stateToMovement(state);
-        }
-        
-        
-        //Debug.Log(gmScript.health);
-        //Debug.Log(gmScript.gameOver);
-        //Debug.Log(gmScript.score);
-        //pmScript.holdingRecycle
-        //pmScript.holdingTrash
-        if(gmScript.gameOver)
-        {
-            restartLevel();
-        }
-
-    }
     void removeNull()
     {
         // positions of gators (enemy)
@@ -134,10 +216,6 @@ public class LuaConvScript : MonoBehaviour {
             {
                 tsScript.gators.RemoveAt(i);
             }
-            else
-            {
-
-            }
         }
         // positions of trash
         for (int i = 0; i < tsScript.trash.Count; i++)
@@ -145,10 +223,6 @@ public class LuaConvScript : MonoBehaviour {
             if (tsScript.trash[i] == null)
             {
                 tsScript.trash.RemoveAt(i);
-            }
-            else
-            {
-
             }
         }
         // positions of recycleables
@@ -158,10 +232,7 @@ public class LuaConvScript : MonoBehaviour {
             {
                 tsScript.recycleable.RemoveAt(i);
             }
-            else
-            {
 
-            }
         }
         // powerups
         for (int i = 0; i < tsScript.powerups.Count; i++)
@@ -169,10 +240,6 @@ public class LuaConvScript : MonoBehaviour {
             if (tsScript.powerups[i] == null)
             {
                 tsScript.powerups.RemoveAt(i);
-            }
-            else
-            {
-
             }
         }
     }
@@ -185,7 +252,9 @@ public class LuaConvScript : MonoBehaviour {
     }
     int getTile(int dx, int dy)
     {
-        // TO DO
+        int x = (int)Mathf.Floor((float)(marioX + dx + 8) / 16.0f);
+
+        int y = (int)Mathf.Floor((float)(marioY + dy) / 16.0f);
         return 0;
     }
     // Could probably add sprites for powerups and 
