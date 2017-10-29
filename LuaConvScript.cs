@@ -163,11 +163,12 @@ public class LuaConvScript : MonoBehaviour {
 
             }
         }
+        // powerups
         for (int i = 0; i < tsScript.powerups.Count; i++)
         {
-            if (tsScript.recycleable[i] == null)
+            if (tsScript.powerups[i] == null)
             {
-                tsScript.recycleable.RemoveAt(i);
+                tsScript.powerups.RemoveAt(i);
             }
             else
             {
