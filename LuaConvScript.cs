@@ -57,6 +57,7 @@ public class LuaConvScript : MonoBehaviour {
     }
     class genome
     {
+        public List<gene> genes;
         public double fitness = 0;
         public double adjustedFitness = 0;
         //network
@@ -66,6 +67,7 @@ public class LuaConvScript : MonoBehaviour {
         public genome(double MutateConnectionsChance, double LinkMutationChance, double BiasMutationChance,
             double NodeMutationChance, double EnableMutationChance, double DisableMutationChance, double StepSize)
         {
+            genes = new List<gene>();
             mutationRates["connections"] = MutateConnectionsChance;
             mutationRates["link"] = LinkMutationChance;
             mutationRates["bias"] = BiasMutationChance;
@@ -104,8 +106,6 @@ public class LuaConvScript : MonoBehaviour {
     {
         removeNull();
         getPositions();
-        
-
 
 
         if (!pmScript.ai_testing || true)
@@ -149,13 +149,120 @@ public class LuaConvScript : MonoBehaviour {
         genome gen2 = new genome(g1.mutationRates["connections"], g1.mutationRates["link"], g1.mutationRates["bias"],
             g1.mutationRates["node"], g1.mutationRates["enable"], g1.mutationRates["disable"], g1.mutationRates["connections"]);
         gen2.maxneuron = g1.maxneuron;
-
+        for (int i = 0; i < g1.genes.Count; i++)
+        {
+            gen2.genes.Add(copyGene(g1.genes[i]));
+        }
         return gen2;
+    }
+    void pointMutate(genome g)
+    {
+        double step = g.mutationRates["step"];
+        for (int i = 0; i < g.genes.Count; i++)
+        {
+            gene geneLocal = g.genes[i];
+            if(Random.Range(0.0f, 1.0f) < PerturbChance)
+            {
+                geneLocal.weight = geneLocal.weight + Random.Range(0.0f, 1.0f) * step * 2 - step;
+            }
+            else
+            {
+                geneLocal.weight = Random.Range(0.0f, 1.0f) * 4 - 2;
+            }
+        }
+    }
+    void linkMutate(genome g, bool b)
+    {
+        // to do
+    }
+    void enableDisableMutate(genome g, bool b)
+    {
+        // to do
+    }
+    void nodeMutate(genome g)
+    {
+        // to do
+    }
+    void mutate(genome g)
+    {
+        Random random = new Random();
+        foreach (KeyValuePair<string, double> entry in g.mutationRates)
+        {
+            // do something with entry.Value or entry.Key
+            if(Mathf.RoundToInt(Random.Range(0,2)) == 1)
+            {
+                g.mutationRates[entry.Key] = .95 * entry.Value;
+            }
+            else
+            {
+                g.mutationRates[entry.Key] = 1.05263 * entry.Value;
+            }
+        }
+        if(Random.Range(0.0f, 1.0f) < g.mutationRates["connections"])
+        {
+            pointMutate(g);
+        }
+        double p = g.mutationRates["link"];
+        while (p > 0)
+        {
+            if(Random.Range(0.0f, 1.0f) < p)
+            {
+                linkMutate(g, false);
+            }
+            p -= 1;
+        }
+
+        p = g.mutationRates["bias"];
+        while (p > 0)
+        {
+            if (Random.Range(0.0f, 1.0f) < p)
+            {
+                linkMutate(g, true);
+            }
+            p -= 1;
+        }
+
+        p = g.mutationRates["node"];
+        while (p > 0)
+        {
+            if (Random.Range(0.0f, 1.0f) < p)
+            {
+                nodeMutate(g);
+            }
+            p -= 1;
+        }
+
+        p = g.mutationRates["enable"];
+        while (p > 0)
+        {
+            if (Random.Range(0.0f, 1.0f) < p)
+            {
+                enableDisableMutate(g, true);
+            }
+            p -= 1;
+        }
+
+        p = g.mutationRates["disable"];
+        while (p > 0)
+        {
+            if (Random.Range(0.0f, 1.0f) < p)
+            {
+                enableDisableMutate(g, false);
+            }
+            p -= 1;
+        }
+
+
     }
     genome basicGenome()
     {
         // to do
-        return newGenome();
+        genome bg =  newGenome();
+        // not sure how this innovation variable is useful??
+        double innovation = 1;
+        bg.maxneuron = Inputs;
+        mutate(bg);
+        return bg;
     }
     gene copyGene(gene g1)
     {
