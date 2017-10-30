@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -41,11 +41,15 @@ public class LuaConvScript : MonoBehaviour {
     public int MaxNodes = 1000000;
 
     private double marioX, marioY;
+
+    // values from game that can be used
     //gmScript.health
     //gmScript.gameOver
     //gmScript.score
     //pmScript.holdingRecycle
     //pmScript.holdingTrash
+
+    // classes for Conv network
     class gene
     {
         public double into = 0;
@@ -87,24 +91,9 @@ public class LuaConvScript : MonoBehaviour {
     class pool
     {
         public double species;
-        public double generation;
-        public double innovation;
-        public double currentSpecies;
-        public double currentGenome;
-        public double currentFrame;
-        public double maxFitness;
     }
-    
-    public pool()
-    {
-        public List<species> species;
-        generation = 0;
-        innovation = Outputs;
-        currentSpecies = 1;
-        currentGenome = 1;
-        currentFrame = 0;
-        maxFitness = 0;
-    }
+
+
     // Use this for initialization
     void Start () {
         pmScript = GameObject.FindGameObjectWithTag("Player").GetComponent<playerMovement>();
@@ -144,8 +133,6 @@ public class LuaConvScript : MonoBehaviour {
             }
             stateToMovement(state);
         }
-
-
         
         if (gmScript.gameOver)
         {
@@ -172,6 +159,53 @@ public class LuaConvScript : MonoBehaviour {
         }
         return gen2;
     }
+    int randomNeuron(genome g, bool nonInput)
+    {
+        // not done or working
+        Dictionary<int, bool> neurons = new Dictionary<int, bool>();
+
+        if (!nonInput)
+        {
+            for (int i = 0; i < Inputs; i++)
+            {
+                neurons[i] = true;
+            }
+        }
+
+        for (int i = 0; i < Outputs; i++)
+        {
+            neurons[MaxNodes + i] = true;
+        }
+
+        for (int i = 0; i < g.genes.Count; i++)
+        {
+            if (!nonInput || (int)g.genes[i].into > Inputs)
+            {
+                neurons[(int)g.genes[i].into] = true;
+            }
+            if (!nonInput || (int)g.genes[i].Out > Inputs)
+            {
+                neurons[(int)g.genes[i].Out] = true;
+            }
+        }
+
+        int count = 0;
+        for (int i = 0; i < neurons.Count; i++)
+        {
+            count++;
+        }
+
+        int n = Random.Range(1, count);
+        foreach (var item in neurons)
+        {
+            n = n - 1;
+            if(n == 0)
+            {
+                return item.Key;
+            }
+        }
+        return 0;
+    }
     void pointMutate(genome g)
     {
         double step = g.mutationRates["step"];
@@ -188,122 +222,61 @@ public class LuaConvScript : MonoBehaviour {
             }
         }
     }
-    
-    
-    
-    void randomNeuron(genome g, bool nonInput)
-    {
-        bool[] neurons = new bool[MaxNodes + Outputs];
-
-        if(!nonInput)
-        {
-            for(int i = 0; i < Inputs; i++)
-            {
-                neurons[i] = true;
-            }
-        }
-
-        for(int i = 0; i < Outputs; i++)
-        {
-            neurons[MaxNodes + i] = true;
-        }
-
-        for(int i = 0; g.genes.Count; i++)
-        {
-            if(!nonInput || (int)g.genes[i].into > Inputs)
-            {
-                neurons[g.genes[i].into] = true;
-            }
-            if(!nonInput || (int)g.genes[i].Out > Inputs)
-            {
-                neurons[g.genes[i].out] = true;
-            }
-        }
-        
-        int count = 0;
-        for(int i = 0; i < neurons.Count; i++)
-        {
-            count ++;
-        }
-        
-        int n = Random.Range(1, count);
-        
-        for(int i = 0; i < neurons.Count; i++)
-        {
-            n = n - 1;
-            if(n == 0)
-                return i;
-        }
-    }
-    
-    bool containsLink(genome g, gene l)
-    {
-        for(int i = 0; i < g.genes.count; i++)
-        {
-            var gene = g.genes[i];
-            if(gene.into == l.into && gene.Out == l.Out)
-            {
-                return true;
-            }
-        }
-    }
-    
     void linkMutate(genome g, bool b)
     {
         // to do
         var neuron1 = randomNeuron(g, false);
         var neuron2 = randomNeuron(g, true);
-        
+
         var newLink = new gene();
-        
-        if(neuron1 <= Inputs && neuron2 <= Inputs)
+
+        if (neuron1 <= Inputs && neuron2 <= Inputs)
         {
             return;
         }
-        if(neuron2 <= Inputs)
+        if (neuron2 <= Inputs)
         {
             var temp = neuron1;
             neuron1 = neuron2;
             neuron2 = temp;
         }
-        
+
         newLink.into = neuron1;
-        newlink.Out = neuron2;
-        if(b)
+        newLink.Out = neuron2;
+        if (b)
             newLink.into = Inputs;
-        
-        if(containsLink(g.genes, newLink))
+
+        if (containsLink(g.genes, newLink))
         {
             return;
         }
-        
-        newLink.innovation += 1; 
-        float t = Random.Range(0,1);
+
+        newLink.innovation += 1;
+        float t = Random.Range(0, 1);
         newLink.weight = (double)t;
-        
+
     }
     void enableDisableMutate(genome g, bool b)
     {
         // to do
         List<gene> candidates = new List<gene>();
-        
-        for(int i = 0; i < g.gene.count; i++)
+
+        for (int i = 0; i < g.genes.Count; i++)
         {
-            if(g.gene.enabled != b)
-                candidates.add(g.gene);
+            if (g.genes[i].enabled != b)
+                candidates.Add(g.genes[i]);
         }
-        
-        if(candidates.count == 0)
+
+        if (candidates.Count == 0)
             return;
-            
-        var gene = candidates[Random.Range(1,candidates.count)];
+
+        var gene = candidates[Random.Range(1, candidates.Count)];
         gene.enabled = !gene.enabled;
     }
     void nodeMutate(genome g)
     {
         // to do
     }
-    
     void mutate(genome g)
     {
         Random random = new Random();
@@ -395,84 +368,18 @@ public class LuaConvScript : MonoBehaviour {
         g2.innovation = g1.innovation;
         return g2;
     }
-    double runLuaScript()
+    bool containsLink(List<gene> genes, gene l)
     {
-        // just an example
-        string tempIn = "45";
-        string script = @"
-                -- defines a factorial function
-		        function fact (n)
-			        if (n == 0) then
-				        return 1
-			        else
-				        return n*fact(n - 1)
-			        end
-		        end
-
-		        return fact({0})";
-        script = string.Format(script, tempIn);
-        DynValue res = Script.RunString(script);
-        return res.Number;
-    }
-    void restartLevel()
-    {
-        SceneManager.LoadScene("Main");
-    }
-    void stateToMovement(int state)
-    {
-        if (state == 1)
+        for (int i = 0; i < genes.Count; i++)
         {
-            state = 1;
-            pmScript.leftRight = -1;
-        }
-        else if (state == 2)
-        {
-            pmScript.leftRight = 1;
-        }
-        else
-        {
-            // state == 0
-            pmScript.leftRight = 0;
-        }
-    }
-    void removeNull()
-    {
-        // positions of gators (enemy)
-        for (int i = 0; i < tsScript.gators.Count; i++)
-        {
-            if (tsScript.gators[i] == null)
+            var gene = genes[i];
+            if (gene.into == l.into && gene.Out == l.Out)
             {
-                tsScript.gators.RemoveAt(i);
+                return true;
             }
         }
-        // positions of trash
-        for (int i = 0; i < tsScript.trash.Count; i++)
-        {
-            if (tsScript.trash[i] == null)
-            {
-                tsScript.trash.RemoveAt(i);
-            }
-        }
-        // positions of recycleables
-        for (int i = 0; i < tsScript.recycleable.Count; i++)
-        {
-            if (tsScript.recycleable[i] == null)
-            {
-                tsScript.recycleable.RemoveAt(i);
-            }
-
-        }
-        // powerups
-        for (int i = 0; i < tsScript.powerups.Count; i++)
-        {
-            if (tsScript.powerups[i] == null)
-            {
-                tsScript.powerups.RemoveAt(i);
-            }
-        }
+        return false;
     }
-
-
     void getPositions()
     {
         marioX = pmScript.player.position.x;
@@ -553,6 +460,93 @@ public class LuaConvScript : MonoBehaviour {
         }
         return inputs;
     }
-    
+
+
+    // Functions not originally in Lua
+
+    // example way to exec lua script
+    // probably won't be needed since we are translating everything
+    double runLuaScript()
+    {
+        // just an example
+        string tempIn = "45";
+        string script = @"
+                -- defines a factorial function
+		        function fact (n)
+			        if (n == 0) then
+				        return 1
+			        else
+				        return n*fact(n - 1)
+			        end
+		        end
+
+		        return fact({0})";
+        script = string.Format(script, tempIn);
+        DynValue res = Script.RunString(script);
+        return res.Number;
+    }
+    void restartLevel()
+    {
+        SceneManager.LoadScene("Main");
+    }
+    // states are input that allow for movement of player
+    void stateToMovement(int state)
+    {
+        // moving left
+        if (state == 1)
+        {
+            state = 1;
+            pmScript.leftRight = -1;
+        }
+        else if (state == 2)
+        {
+            // moving right
+            pmScript.leftRight = 1;
+        }
+        else
+        {
+            // staying still
+            // state == 0
+            pmScript.leftRight = 0;
+        }
+    }
+    // removes all objects that are null
+    // prevents getting positions of anything that has been destroyed
+    void removeNull()
+    {
+        // positions of gators (enemy)
+        for (int i = 0; i < tsScript.gators.Count; i++)
+        {
+            if (tsScript.gators[i] == null)
+            {
+                tsScript.gators.RemoveAt(i);
+            }
+        }
+        // positions of trash
+        for (int i = 0; i < tsScript.trash.Count; i++)
+        {
+            if (tsScript.trash[i] == null)
+            {
+                tsScript.trash.RemoveAt(i);
+            }
+        }
+        // positions of recycleables
+        for (int i = 0; i < tsScript.recycleable.Count; i++)
+        {
+            if (tsScript.recycleable[i] == null)
+            {
+                tsScript.recycleable.RemoveAt(i);
+            }
+
+        }
+        // powerups
+        for (int i = 0; i < tsScript.powerups.Count; i++)
+        {
+            if (tsScript.powerups[i] == null)
+            {
+                tsScript.powerups.RemoveAt(i);
+            }
+        }
+    }
 
 }
