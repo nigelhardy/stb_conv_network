@@ -94,7 +94,7 @@ public class LuaConvScript : MonoBehaviour {
     class pool
     {
         public List<species> species;
-        public int generation;
+        public int generation = 0;
         public int innovation;
         public int currentSpecies = 1;
         public int currentGenome = 1;
@@ -476,7 +476,11 @@ public class LuaConvScript : MonoBehaviour {
         }
         return inputs;
     }
-
+    pool newPool()
+    {
+        // to do
+        return new pool(Outputs);
+    }
     /*
     * Functions that need to be implemented
     * */
@@ -491,11 +495,6 @@ public class LuaConvScript : MonoBehaviour {
         return 0;
     }
     pool newInovation()
-    {
-        // to do
-        return new pool(Outputs);
-    }
-    pool newPool()
     {
         // to do
         return new pool(Outputs);
