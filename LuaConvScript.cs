@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -87,6 +87,23 @@ public class LuaConvScript : MonoBehaviour {
     class pool
     {
         public double species;
+        public double generation;
+        public double innovation;
+        public double currentSpecies;
+        public double currentGenome;
+        public double currentFrame;
+        public double maxFitness;
+    }
+    
+    public pool()
+    {
+        public List<species> species;
+        generation = 0;
+        innovation = Outputs;
+        currentSpecies = 1;
+        currentGenome = 1;
+        currentFrame = 0;
+        maxFitness = 0;
     }
     // Use this for initialization
     void Start () {
@@ -171,18 +188,122 @@ public class LuaConvScript : MonoBehaviour {
             }
         }
     }
+    
+    
+    
+    void randomNeuron(genome g, bool nonInput)
+    {
+        bool[] neurons = new bool[MaxNodes + Outputs];
+
+        if(!nonInput)
+        {
+            for(int i = 0; i < Inputs; i++)
+            {
+                neurons[i] = true;
+            }
+        }
+
+        for(int i = 0; i < Outputs; i++)
+        {
+            neurons[MaxNodes + i] = true;
+        }
+
+        for(int i = 0; g.genes.Count; i++)
+        {
+            if(!nonInput || (int)g.genes[i].into > Inputs)
+            {
+                neurons[g.genes[i].into] = true;
+            }
+            if(!nonInput || (int)g.genes[i].Out > Inputs)
+            {
+                neurons[g.genes[i].out] = true;
+            }
+        }
+        
+        int count = 0;
+        for(int i = 0; i < neurons.Count; i++)
+        {
+            count ++;
+        }
+        
+        int n = Random.Range(1, count);
+        
+        for(int i = 0; i < neurons.Count; i++)
+        {
+            n = n - 1;
+            if(n == 0)
+                return i;
+        }
+    }
+    
+    bool containsLink(genome g, gene l)
+    {
+        for(int i = 0; i < g.genes.count; i++)
+        {
+            var gene = g.genes[i];
+            if(gene.into == l.into && gene.Out == l.Out)
+            {
+                return true;
+            }
+        }
+    }
+    
     void linkMutate(genome g, bool b)
     {
         // to do
+        var neuron1 = randomNeuron(g, false);
+        var neuron2 = randomNeuron(g, true);
+        
+        var newLink = new gene();
+        
+        if(neuron1 <= Inputs && neuron2 <= Inputs)
+        {
+            return;
+        }
+        if(neuron2 <= Inputs)
+        {
+            var temp = neuron1;
+            neuron1 = neuron2;
+            neuron2 = temp;
+        }
+        
+        newLink.into = neuron1;
+        newlink.Out = neuron2;
+        if(b)
+            newLink.into = Inputs;
+        
+        if(containsLink(g.genes, newLink))
+        {
+            return;
+        }
+        
+        newLink.innovation += 1; 
+        float t = Random.Range(0,1);
+        newLink.weight = (double)t;
+        
     }
     void enableDisableMutate(genome g, bool b)
     {
         // to do
+        List<gene> candidates = new List<gene>();
+        
+        for(int i = 0; i < g.gene.count; i++)
+        {
+            if(g.gene.enabled != b)
+                candidates.add(g.gene);
+        }
+        
+        if(candidates.count == 0)
+            return;
+            
+        var gene = candidates[Random.Range(1,candidates.count)];
+        gene.enabled = !gene.enabled;
     }
     void nodeMutate(genome g)
     {
         // to do
     }
+    
     void mutate(genome g)
     {
         Random random = new Random();
@@ -432,6 +553,6 @@ public class LuaConvScript : MonoBehaviour {
         }
         return inputs;
     }
-
+    
 
 }
