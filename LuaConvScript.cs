@@ -68,6 +68,7 @@ public class LuaConvScript : MonoBehaviour {
         public double maxneuron = 0;
         public double globalRank = 0;
         public Dictionary<string, double> mutationRates = new Dictionary<string, double>();
+        public Dictionary<int, neuron> network = new Dictionary<int, neuron>();
         public genome(double MutateConnectionsChance, double LinkMutationChance, double BiasMutationChance,
             double NodeMutationChance, double EnableMutationChance, double DisableMutationChance, double StepSize)
         {
@@ -86,13 +87,29 @@ public class LuaConvScript : MonoBehaviour {
     {
         public double topFitness = 0;
         public double staleness = 0;
-        public double averageFitness;
+        public List<genome> genomes;
+        public double averageFitness = 0;
+        
     }
     class pool
     {
-        public double species;
+        public List<species> species;
+        public int generation;
+        public int innovation;
+        public int currentSpecies = 1;
+        public int currentGenome = 1;
+        public int currentFrame = 0;
+        public double maxFitness = 0;
+        public pool(int Outputs)
+        {
+            innovation = Outputs;
+        }
     }
-
+    class neuron
+    {
+        public Dictionary<int, gene> incoming;
+        public double value;
+    }
 
     // Use this for initialization
     void Start () {
@@ -224,7 +241,6 @@ public class LuaConvScript : MonoBehaviour {
     }
     void linkMutate(genome g, bool b)
     {
-        // to do
         var neuron1 = randomNeuron(g, false);
         var neuron2 = randomNeuron(g, true);
 
@@ -460,6 +476,160 @@ public class LuaConvScript : MonoBehaviour {
         }
         return inputs;
     }
+
+    /*
+    * Functions that need to be implemented
+    * */
+
+    int disjoint(List<gene> genes1, List<gene> genes2)
+    {
+        return 0;
+    }
+    double sigmoid(double x)
+    {
+        // to do
+        return 0;
+    }
+    pool newInovation()
+    {
+        // to do
+        return new pool(Outputs);
+    }
+    pool newPool()
+    {
+        // to do
+        return new pool(Outputs);
+    }
+    species newSpecies()
+    {
+        // to do
+        return new species();
+    }
+    gene newGene()
+    {
+        // to do
+        return new gene();
+    }
+    neuron newNeuron()
+    {
+        return new neuron();
+    } 
+    void generateNetwork(genome gen)
+    {
+        // to do
+        Dictionary<int, neuron> network = new Dictionary<int, neuron>();
+
+        gen.network = network;
+    }
+    Dictionary<int, bool> evaluateNetwork(Dictionary<int, neuron> network, int inputs)
+    {
+        // to do
+        Dictionary<int, bool> outputs = new Dictionary<int, bool>();
+
+
+        return outputs;
+    }
+    genome crossover(gene g1, gene g2)
+    {
+        // to do
+        genome child = newGenome();
+
+        return child;
+    }
+    double weights(List<gene> genes1, List<gene> genes2)
+    {
+        // to do
+        return 0;
+    }
+    double sameSpecies(genome gen1, genome gen2)
+    {
+        // to do
+        return 0;
+    }
+    void rankGlobally()
+    {
+        // to do
+    }
+    void calculateAverageFitness(species species)
+    {
+        // to do
+    }
+    double totalAverageFitness()
+    {
+        // to do
+        return 0;
+    }
+    void cullSpecies(bool cutToOne)
+    {
+        // to do
+    }
+    species breedChild(species species)
+    {
+        // to do
+        return new species();
+    }
+    void removeStaleSpecies()
+    {
+        // to do
+    }
+    void removeWeakSpecies()
+    {
+        // to do
+    }
+    void addToSpecies(species child)
+    {
+        // to do
+    }
+    void newGeneration()
+    {
+        // to do
+    }
+    void initializePool()
+    {
+        // to do
+    }
+    void clearJoypad()
+    {
+        // to do
+    }
+    void initializeRun()
+    {
+        // to do
+    }
+    void evaluateCurrent()
+    {
+        // to do
+    }
+    void nextGenome()
+    {
+        // to do
+    }
+    bool fitnessAlreadyMeasured()
+    {
+        // to do
+        return false;
+    }
+    void writeFile()
+    {
+        // to do
+    }
+    void savePool()
+    {
+        // to do
+    }
+    void loadPool()
+    {
+        // to do
+    }
+    void playTop()
+    {
+        // to do
+    }
+
+    /*
+     * End of Lua Functions
+     * */
+
 
 
     // Functions not originally in Lua
