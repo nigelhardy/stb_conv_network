@@ -274,7 +274,6 @@ public class LuaConvScript : MonoBehaviour {
     }
     void enableDisableMutate(genome g, bool b)
     {
-        // to do
         List<gene> candidates = new List<gene>();
 
         for (int i = 0; i < g.genes.Count; i++)
@@ -291,7 +290,29 @@ public class LuaConvScript : MonoBehaviour {
     }
     void nodeMutate(genome g)
     {
-        // to do
+        if (g.genes.Count == 0)
+            return;
+    
+            g.maxneuron = g.maxneuron + 1;
+    
+            float rand = Random.Range(1, g.genes);
+            var gene = g.genes[rand];
+            if (!gene.enabled)
+                return;
+            gene.enabled = false;
+    
+            gene1 = copyGene(gene);
+            gene1.Out = g.maxneuron;
+            gene1.weight = 1.0;
+            gene1.innovation += 1;
+            gene1.enabled = true;
+            g.genes.Add(gene1);
+    
+            gene2 = copyGene(gene);
+            gene2.into = g.maxneuron;
+            gene2.innovation += 1;
+            gene2.enabled = true;
+            g.genes.Add(gene2);
     }
     void mutate(genome g)
     {
@@ -366,7 +387,6 @@ public class LuaConvScript : MonoBehaviour {
     }
     genome basicGenome()
     {
-        // to do
         genome bg =  newGenome();
         // not sure how this innovation variable is useful??
         double innovation = 1;
@@ -478,13 +498,13 @@ public class LuaConvScript : MonoBehaviour {
     }
     pool newPool()
     {
-        // to do
         return new pool(Outputs);
     }
     /*
     * Functions that need to be implemented
     * */
 
+    // Nigel's Work
     int disjoint(List<gene> genes1, List<gene> genes2)
     {
         return 0;
@@ -499,6 +519,9 @@ public class LuaConvScript : MonoBehaviour {
         // to do
         return new pool(Outputs);
     }
+    // END Nigel's work
+    
+    // Phucs Work
     species newSpecies()
     {
         // to do
@@ -512,7 +535,15 @@ public class LuaConvScript : MonoBehaviour {
     neuron newNeuron()
     {
         return new neuron();
-    } 
+    }
+    // End Phucs work
+    
+    
+    // Begin Daniel's Work
+    void playTop()
+    {
+        // to do
+    }
     void generateNetwork(genome gen)
     {
         // to do
@@ -545,10 +576,6 @@ public class LuaConvScript : MonoBehaviour {
         // to do
         return 0;
     }
-    void rankGlobally()
-    {
-        // to do
-    }
     void calculateAverageFitness(species species)
     {
         // to do
@@ -557,6 +584,14 @@ public class LuaConvScript : MonoBehaviour {
     {
         // to do
         return 0;
+    }
+    // END Daniel's Work
+    
+    
+    // Being Dustin's Work
+    void rankGlobally()
+    {
+        // to do
     }
     void cullSpecies(bool cutToOne)
     {
@@ -583,14 +618,19 @@ public class LuaConvScript : MonoBehaviour {
     {
         // to do
     }
-    void initializePool()
-    {
-        // to do
-    }
     void clearJoypad()
     {
         // to do
     }
+
+    // End Dustin's Work
+    
+    // BEING Scott's Work
+    void initializePool()
+    {
+        // to do
+    }
+    
     void initializeRun()
     {
         // to do
@@ -620,10 +660,8 @@ public class LuaConvScript : MonoBehaviour {
     {
         // to do
     }
-    void playTop()
-    {
-        // to do
-    }
+    // End Scott's Work
+
 
     /*
      * End of Lua Functions
