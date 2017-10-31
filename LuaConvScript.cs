@@ -52,12 +52,21 @@ public class LuaConvScript : MonoBehaviour {
     // classes for Conv network
     class gene
     {
-        public double into = 0;
+        public double into;
         // out is capitalized because out is keyword
-        public double Out = 0;
-        public double weight = 0;
-        public bool enabled = true;
-        public double innovation = 0;
+        public double Out;
+        public double weight;
+        public bool enabled;
+        public double innovation;
+
+        public gene()
+        {
+            into = 0;
+            Out = 0;
+            weight = 0;
+            enabled = true;
+            innovation = 0;
+        }
     }
     class genome
     {
@@ -85,11 +94,18 @@ public class LuaConvScript : MonoBehaviour {
     }
     class species
     {
-        public double topFitness = 0;
-        public double staleness = 0;
+        public double topFitness;
+        public double staleness;
         public List<genome> genomes;
-        public double averageFitness = 0;
-        
+        public double averageFitness;
+
+        public species()
+        {
+            topFitness = 0;
+            staleness = 0;
+            List<genome> genomes;
+            averageFitness = 0;
+        }
     }
     class pool
     {
@@ -107,8 +123,14 @@ public class LuaConvScript : MonoBehaviour {
     }
     class neuron
     {
-        public Dictionary<int, gene> incoming;
+        public List<int> incoming;
         public double value;
+
+        public neuron()
+        {
+            List<int> incoming = new List<int>();
+            value = 0.0;
+        }
     }
 
     // Use this for initialization
@@ -295,20 +317,20 @@ public class LuaConvScript : MonoBehaviour {
     
             g.maxneuron = g.maxneuron + 1;
     
-            float rand = Random.Range(1, g.genes);
+            int rand = Random.Range(1, g.genes.Count);
             var gene = g.genes[rand];
             if (!gene.enabled)
                 return;
             gene.enabled = false;
     
-            gene1 = copyGene(gene);
+            gene gene1 = copyGene(gene);
             gene1.Out = g.maxneuron;
             gene1.weight = 1.0;
             gene1.innovation += 1;
             gene1.enabled = true;
             g.genes.Add(gene1);
-    
-            gene2 = copyGene(gene);
+
+            gene gene2 = copyGene(gene);
             gene2.into = g.maxneuron;
             gene2.innovation += 1;
             gene2.enabled = true;
@@ -623,7 +645,7 @@ public class LuaConvScript : MonoBehaviour {
         // to do
     }
 
-    // End Dustin's Work
+    // End 8=Dustin's Work
     
     // BEING Scott's Work
     void initializePool()
