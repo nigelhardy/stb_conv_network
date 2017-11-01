@@ -25,6 +25,7 @@ public class LuaConvScript : MonoBehaviour {
 
     public int StaleSpecies = 15;
 
+    public double rightmost;
     public double MutateConnectionsChance = 0.25;
     public double PerturbChance = 0.90;
     public double CrossoverChance = 0.75;
@@ -151,7 +152,76 @@ public class LuaConvScript : MonoBehaviour {
     {
         removeNull();
         getPositions();
+        pool pool = initializePool();
 
+        species species = pool.species[pool.currentSpecies];
+        genome genome = species.genomes[pool.currentGenome];
+
+        if(pool.currentFrame%5 == 0)
+        {
+            evaluateCurrent(pool);
+        }
+
+        //Don't know what to do with this
+        //joypad.set(controller);
+
+        getPositions();
+        if(marioX > rightmost)
+        {
+            rightmost = marioX;
+            timeout = TimeoutConstant;
+        }
+
+        timeout = timeout - 1;
+
+        double timeoutBonus = pool.currentFrame / 4;
+        if(timeout + timeoutBonus <= 0)
+        {
+            double fitness = rightmost - pool.currentFrame / 2;
+            if(rightmost > 4816)
+            {
+                fitness += 1000;
+            }
+            if(rightmost > 3186)
+            {
+                fitness += 1000;
+            }
+            if(fitness == 0)
+            {
+                fitness = -1;
+            }
+
+            genome.fitness = fitness;
+
+            if(fitness > pool.maxFitness)
+            {
+                pool.maxFitness = fitness;
+            }
+
+            pool.currentSpecies = 1;
+            pool.currentGenome = 1;
+            while(fitnessAlreadyMeasured(pool))
+            {
+                nextGenome(pool);
+            }
+            initializeRun(pool);
+        }
+
+        double measured = 0;
+        double total = 0;
+        for(int i = 0; i < pool.species.Count; i++)
+        {
+            for(int j = 0; j < species.genomes.Count; j++)
+            {
+                total += 1;
+                if(genome.fitness != 0)
+                {
+                    measured += 1;
+                }
+            }
+        }
+
+        pool.currentFrame += 1;
 
         if (!pmScript.ai_testing || true)
         {
@@ -573,10 +643,10 @@ public class LuaConvScript : MonoBehaviour {
 
         gen.network = network;
     }
-    Dictionary<int, bool> evaluateNetwork(Dictionary<int, neuron> network, int inputs)
+    Dictionary<string, bool> evaluateNetwork(Dictionary<int, neuron> network, List<int> inputs)
     {
         // to do
-        Dictionary<int, bool> outputs = new Dictionary<int, bool>();
+        Dictionary<string, bool> outputs = new Dictionary<string, bool>();
 
 
         return outputs;
@@ -632,7 +702,7 @@ public class LuaConvScript : MonoBehaviour {
     {
         // to do
     }
-    void addToSpecies(species child)
+    void addToSpecies(genome child)
     {
         // to do
     }
@@ -648,39 +718,100 @@ public class LuaConvScript : MonoBehaviour {
     // End 8=Dustin's Work
     
     // BEING Scott's Work
-    void initializePool()
+    pool initializePool()
     {
-        // to do
+        pool pool = new pool(Outputs);
+
+        for(int i = 0; i < Population; i++)
+        {
+            genome basic = basicGenome();
+            addToSpecies(basic);
+        }
+
+        initializeRun(pool);
+        return pool;
     }
     
-    void initializeRun()
+    void initializeRun(pool pool)
+    {
+        // Still need?
+        //savestate.load(Filename);
+        rightmost = 0;
+        pool.currentFrame = 0;
+        timeout = TimeoutConstant;
+        clearJoypad();
+
+        species species = pool.species[pool.currentSpecies];
+        genome genome = species.genomes[pool.currentGenome];
+        evaluateCurrent(pool);
+    }
+
+    void evaluateCurrent(pool pool)
+    {
+        species species = pool.species[pool.currentSpecies];
+        genome genome = species.genomes[pool.currentGenome];
+
+        List<int> inputs = getInputs();
+        Dictionary<string, bool> controller = evaluateNetwork(genome.network, inputs);
+
+        if(controller["P1 Left"] && controller["P1 Right"])
+        {
+            controller["P1 Left"] = false;
+            controller["P1 Right"] = false;
+        }
+        if(controller["P1 Up"] && controller["P1 Down"])
+        {
+            controller["P1 Up"] = false;
+            controller["P1 Down"] = false;
+        }
+
+        //Is there a joypad class? Where is this in our current stuff??
+        //joypad.set(controller);
+    }
+
+    void nextGenome(pool pool)
+    {
+        pool.currentGenome = pool.currentGenome + 1;
+        if(pool.currentGenome > pool.species[pool.currentSpecies].genomes.Count)
+        {
+            pool.currentGenome = 1;
+            pool.currentSpecies = pool.currentSpecies + 1;
+            if(pool.currentSpecies > pool.species.Count)
+            {
+                newGeneration();
+                pool.currentSpecies = 1;
+            }
+        }
+    }
+
+    bool fitnessAlreadyMeasured(pool pool)
+    {
+        species species = pool.species[pool.currentSpecies];
+        genome genome = species.genomes[pool.currentGenome];
+
+        return genome.fitness != 0;
+    }
+
+    //Might not need these last three functions
+    //If we do then we need to find a replacement for 'forms' in lua
+    void writeFile(string filename)
     {
         // to do
+
     }
-    void evaluateCurrent()
-    {
-        // to do
-    }
-    void nextGenome()
-    {
-        // to do
-    }
-    bool fitnessAlreadyMeasured()
-    {
-        // to do
-        return false;
-    }
-    void writeFile()
-    {
-        // to do
-    }
+
     void savePool()
     {
         // to do
+        string filename = "";
+        writeFile(filename);
     }
+
     void loadPool()
     {
         // to do
+        string filename = "";
+        //loadFile(filename);
     }
     // End Scott's Work
 
