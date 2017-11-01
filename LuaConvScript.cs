@@ -43,6 +43,7 @@ public class LuaConvScript : MonoBehaviour
 
     private double marioX, marioY;
     private double rightmost = 0;
+    pool poolGlobal;
     // values from game that can be used
     //gmScript.health
     //gmScript.gameOver
@@ -155,14 +156,14 @@ public class LuaConvScript : MonoBehaviour
         removeNull();
         getPositions();
 
-        pool pool = initializePool();
+        poolGlobal = initializePool();
 
-        species species = pool.species[pool.currentSpecies];
-        genome genome = species.genomes[pool.currentGenome];
+        species species = poolGlobal.species[poolGlobal.currentSpecies];
+        genome genome = species.genomes[poolGlobal.currentGenome];
 
-        if (pool.currentFrame % 5 == 0)
+        if (poolGlobal.currentFrame % 5 == 0)
         {
-            evaluateCurrent(pool);
+            evaluateCurrent(poolGlobal);
         }
 
         //Don't know what to do with this
@@ -177,10 +178,10 @@ public class LuaConvScript : MonoBehaviour
 
         timeout = timeout - 1;
 
-        double timeoutBonus = pool.currentFrame / 4;
+        double timeoutBonus = poolGlobal.currentFrame / 4;
         if (timeout + timeoutBonus <= 0)
         {
-            double fitness = rightmost - pool.currentFrame / 2;
+            double fitness = rightmost - poolGlobal.currentFrame / 2;
             if (rightmost > 4816)
             {
                 fitness += 1000;
@@ -196,23 +197,23 @@ public class LuaConvScript : MonoBehaviour
 
             genome.fitness = fitness;
 
-            if (fitness > pool.maxFitness)
+            if (fitness > poolGlobal.maxFitness)
             {
-                pool.maxFitness = fitness;
+                poolGlobal.maxFitness = fitness;
             }
 
-            pool.currentSpecies = 1;
-            pool.currentGenome = 1;
-            while (fitnessAlreadyMeasured(pool))
+            poolGlobal.currentSpecies = 1;
+            poolGlobal.currentGenome = 1;
+            while (fitnessAlreadyMeasured(poolGlobal))
             {
-                nextGenome(pool);
+                nextGenome(poolGlobal);
             }
-            initializeRun(pool);
+            initializeRun(poolGlobal);
         }
 
         double measured = 0;
         double total = 0;
-        for (int i = 0; i < pool.species.Count; i++)
+        for (int i = 0; i < poolGlobal.species.Count; i++)
         {
             for (int j = 0; j < species.genomes.Count; j++)
             {
@@ -224,7 +225,7 @@ public class LuaConvScript : MonoBehaviour
             }
         }
 
-        pool.currentFrame += 1;
+        poolGlobal.currentFrame += 1;
 
         if (!pmScript.ai_testing || true)
         {
@@ -412,6 +413,7 @@ public class LuaConvScript : MonoBehaviour
     void mutate(genome g)
     {
         Random random = new Random();
+        // WRONG WAY TO ITERATE IN C#, GET LIST OF KEYS
         foreach (KeyValuePair<string, double> entry in g.mutationRates)
         {
             // do something with entry.Value or entry.Key
@@ -619,12 +621,10 @@ public class LuaConvScript : MonoBehaviour
     // Phucs Work
     species newSpecies()
     {
-        // to do
         return new species();
     }
     gene newGene()
     {
-        // to do
         return new gene();
     }
     neuron newNeuron()
@@ -743,9 +743,17 @@ public class LuaConvScript : MonoBehaviour
         pool.currentFrame = 0;
         timeout = TimeoutConstant;
         clearJoypad();
-
-        species species = pool.species[pool.currentSpecies];
-        genome genome = species.genomes[pool.currentGenome];
+        species species = null;
+        if (pool.species != null)
+        {
+            species = pool.species[pool.currentSpecies];
+        }
+        
+        genome genome;
+        if (species != null)
+        {
+            genome = species.genomes[pool.currentGenome];
+        }
         evaluateCurrent(pool);
     }
 
