@@ -43,6 +43,9 @@ public class LuaConvScript : MonoBehaviour
 
     private double marioX, marioY;
     private double rightmost = 0;
+
+    private pool pool;
+
     // values from game that can be used
     //gmScript.health
     //gmScript.gameOver
@@ -523,7 +526,7 @@ public class LuaConvScript : MonoBehaviour
         int y = (int)Mathf.Floor((float)(marioY + dy) / 16.0f);
         return 0;
     }
-    // Could probably add sprites for powerups and 
+    // Could probably add sprites for powerups and
     // put trash and recycling in different categories
     // but this will do for now
     List<Transform> getSprites()
@@ -637,27 +640,89 @@ public class LuaConvScript : MonoBehaviour
     // Begin Daniel's Work
     void playTop()
     {
-        // to do
+        float maxFitness=0f;
+        float maxs, maxg;
+        for (int i = 0; i < pool.species.Count(); i++) {
+            for (int j = 0; j < pool.species[i].genomes.Count(); j++) {
+                if (pool.species[i].genomes[j] > maxFitness) {
+                    maxFitness = pool.species[i].genomes[j];
+                    maxs = i;
+                    maxg = j;
+                }
+            }
+
+        pool.currentSpecies = maxs;
+        pool.currentGenome = maxg;
+        pool.maxFitness = maxFitness;
+
+        initializeRun() // This may not make sense, are we going to restart the game each run?
+
+        }
     }
+
     void generateNetwork(genome gen)
     {
-        // to do
         Dictionary<int, neuron> network = new Dictionary<int, neuron>();
+        for (int i = 0; i < Inputs; i++) {
+            network.Add(i, new neuron());
+        }
+
+        for (int i = Inputs; i < Outputs+Inputs; i++) {
+            network.Add(i, new neuron());
+        }
+
+        genome.genes.Sort((x, y) => x.Out.CompareTo(y.Out));
+
+        for (int i = 0; i < genome.genes; i++) {
+            var gene = genome.genes[i];
+
+            if (gene.enabled) {
+              if (network.neurons[gene.Out] == null) {
+                network.neurons[gene.Out] = new Neuron();
+              }
+
+              var neuron = network.neurons[gene.Out];
+              neuron.incoming.Add(gene);
+
+              if (network.neurons[gene.into] == null) {
+                network.neurons[gene.into] = new Neuron();
+              }
+
+            }
+
+            genome.network = network;
+        }
+
 
         gen.network = network;
     }
     Dictionary<string, bool> evaluateNetwork(Dictionary<int, neuron> network, List<int> inputs)
     {
-        // to do
-        Dictionary<string, bool> outputs = new Dictionary<string, bool>();
+        inputs.Add(1);
+        if (inputs.Count() != Inputs) {
+            Debug.Log("Incorrect number of neural network inputs");
+            return null;
+        }
 
+        for (int i = 1; i < Inputs.Count(); i++) {
+            network.neurons[i].value = inputs[i];
+        }
+
+        Dictionary<string, bool> outputs = new Dictionary<string, bool>();
 
         return outputs;
     }
     genome crossover(gene g1, gene g2)
     {
-        // to do
-        genome child = newGenome();
+        if (g2.fitness > g1.fitness) {
+            gene tempg = g1
+            g1 = g2
+            g2 = tempg
+        }
+
+        gene child = newGenome();
+
+        // Unfinished
 
         return child;
     }
@@ -668,17 +733,28 @@ public class LuaConvScript : MonoBehaviour
     }
     double sameSpecies(genome gen1, genome gen2)
     {
-        // to do
-        return 0;
+        var dd = DeltaDisjoint*disjoint(genome1.genes, genome2.genes);
+        var dw = DeltaWeights*weights(genome1.genes, genome2.genes);
+        return (dd + dw) < DeltaThreshold;
     }
     void calculateAverageFitness(species species)
     {
-        // to do
+        float total = 0;
+
+        for (int g = 1; g < species.genome.Count(); g++) {
+          var genome = species.genomes[g];
+          total = total + genome.globalRank;
+        }
     }
     double totalAverageFitness()
     {
-        // to do
-        return 0;
+        float total = 0;
+        for (int i = 0; i < pool.species.Count(); i++) {
+          var species = pool.species[i];
+          total = total + species.averageFitness;
+        }
+
+        return total;
     }
     // END Daniel's Work
 
