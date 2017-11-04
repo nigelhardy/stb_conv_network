@@ -642,8 +642,8 @@ public class LuaConvScript : MonoBehaviour
     {
         float maxFitness=0f;
         float maxs, maxg;
-        for (int i = 0; i < pool.species.Count(); i++) {
-            for (int j = 0; j < pool.species[i].genomes.Count(); j++) {
+		for (int i = 0; i < pool.species.Count; i++) {
+            for (int j = 0; j < pool.species[i].genomes.Count; j++) {
                 if (pool.species[i].genomes[j] > maxFitness) {
                     maxFitness = pool.species[i].genomes[j];
                     maxs = i;
@@ -677,15 +677,15 @@ public class LuaConvScript : MonoBehaviour
             var gene = genome.genes[i];
 
             if (gene.enabled) {
-              if (network.neurons[gene.Out] == null) {
-                network.neurons[gene.Out] = new Neuron();
+              if (network[gene.Out] == null) {
+                network[gene.Out] = new neuron();
               }
 
-              var neuron = network.neurons[gene.Out];
+              var neuron = network[gene.Out];
               neuron.incoming.Add(gene);
 
-              if (network.neurons[gene.into] == null) {
-                network.neurons[gene.into] = new Neuron();
+              if (network[gene.into] == null) {
+                network[gene.into] = new neuron();
               }
 
             }
@@ -696,60 +696,127 @@ public class LuaConvScript : MonoBehaviour
 
         gen.network = network;
     }
+
     Dictionary<string, bool> evaluateNetwork(Dictionary<int, neuron> network, List<int> inputs)
     {
         inputs.Add(1);
-        if (inputs.Count() != Inputs) {
+        if (inputs.Count != Inputs) {
             Debug.Log("Incorrect number of neural network inputs");
             return null;
         }
 
-        for (int i = 1; i < Inputs.Count(); i++) {
-            network.neurons[i].value = inputs[i];
+        for (int i = 1; i < Inputs.Count; i++) {
+            network[i].value = inputs[i];
+        }
+
+        for (int i = 0; i < networkCount; i++) {
+            int sum = 0;
+			for (int j = 1; j < neuron.incoming.Count; j++) {
+                var incoming = neuron.incoming[j];
+                var other = network[incoming.into];
+                sum = sum + incoming.weights * other.value;
+            }
+
+            if (nueron.incoming.Count > 0) {
+                neuron.value = sigmoid(sum);
+            }
         }
 
         Dictionary<string, bool> outputs = new Dictionary<string, bool>();
 
+        for (int o = 1; o < Output.Count; o++) {
+            string button = "P1" + ButtonNames[o];
+            if (network[MaxNodes+0].value > 0) {
+                outputs[button] = true;
+            } else {
+                outputs[button] = false;
+            }
+        }
+
         return outputs;
     }
-    genome crossover(gene g1, gene g2)
+
+	genome crossover(genome g1, genome g2)
     {
         if (g2.fitness > g1.fitness) {
-            gene tempg = g1
-            g1 = g2
-            g2 = tempg
+			gene tempg = g1;
+			g1 = g2;
+			g2 = tempg;
         }
 
         gene child = newGenome();
 
-        // Unfinished
+        List<int> innovations2 = new List<int>();
+
+        for (int i = 1; i < g2.genes.Count; i++) {
+            var gene = g2.genes[i];
+            innovations2[gene.innovation] = gene;
+        }
+
+		for (int i = 1; i < g1.genes.Count; i++) {
+            var gene1 = g1.genes[i];
+            var gene2 = innovations2[gene1.innovation];
+            if (gene2 != null && Random(1,2) == 1 && gene2.enabled) {
+                child.genes.Add(copyGene(gene2));
+            } else {
+                child.genes.Add(copyGene(gene1));
+            }
+        }
+
+        child.maxNuerons = Mathf.Max(g1.maxnueron, g2.maxneuron);
+
+		for (int i = 0; i < g1.mutationRates.Count; i++) {
+            child.mutationRates[i] = g1.mutationRates[i];
+        }
 
         return child;
     }
+
     double weights(List<gene> genes1, List<gene> genes2)
     {
-        // to do
-        return 0;
+        List<gene> i2 = new List<gene>();
+
+        for (int i = 1; i < genes2.Count; i++) {
+            var gene = genes2[i];
+            i2[gene.innovation] = gene;
+        }
+
+        float sum = 0;
+        float coincident = 0;
+
+        for (int i = 1; i < genes1.Count; i++) {
+            var gene = genes1[i];
+            if (i2[gene.innovation] != null) {
+                var gene2 = i2[gene.innovation];
+                sum = sum + Mathf.Abs(gene.weight - gene2.weight);
+                coincident = coincident + 1;
+            }
+        }
+
+        return sum / coincident;
     }
+
     double sameSpecies(genome gen1, genome gen2)
     {
         var dd = DeltaDisjoint*disjoint(genome1.genes, genome2.genes);
         var dw = DeltaWeights*weights(genome1.genes, genome2.genes);
         return (dd + dw) < DeltaThreshold;
     }
+    
     void calculateAverageFitness(species species)
     {
         float total = 0;
 
-        for (int g = 1; g < species.genome.Count(); g++) {
+        for (int g = 1; g < species.genome.Count; g++) {
           var genome = species.genomes[g];
           total = total + genome.globalRank;
         }
     }
+
     double totalAverageFitness()
     {
         float total = 0;
-        for (int i = 0; i < pool.species.Count(); i++) {
+        for (int i = 0; i < pool.species.Count; i++) {
           var species = pool.species[i];
           total = total + species.averageFitness;
         }
