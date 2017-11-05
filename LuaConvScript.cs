@@ -15,6 +15,8 @@ public class LuaConvScript : MonoBehaviour
     public int BoxRadius = 6;
     public int InputSize;
     List<string> ButtonNames = new List<string> { "Left", "Right" };
+    ArrayList global = new ArrayList(); //TESTING
+
     int Inputs;
     int Outputs;
 
@@ -686,7 +688,7 @@ public class LuaConvScript : MonoBehaviour
     void rankGlobally()
     {
         pool pool = initializePool();
-        ArrayList global = new ArrayList(); //This called for a local arraylist..
+        //ArrayList global = new ArrayList(); //This called for a local arraylist..
         for (int i=0; i<pool.species.Count; i++)
         {
             species sp = pool.species[i];
@@ -781,7 +783,7 @@ public class LuaConvScript : MonoBehaviour
 
         ArrayList survived = new ArrayList();
         int sum = totalAverageFitness;
-        for (int s = 0; s < pool.species; s++)
+        for (int s = 0; s < pool.species.Count; s++)
         {
             species sp = pool.species[s];
             double breed = Mathf.Floor(sp.averageFitness / sum * Population);
