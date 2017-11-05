@@ -1,3 +1,3 @@
 # stb_conv_network
 Save The Bay Convolution Network
-These are just the c# files. The whole project will be at [a link](https://drive.google.com/open?id=0B0NqWD7WFatNMjZYR0ttR1Y3OUE)
+These are just the c# files. You can download the project [here](https://drive.google.com/open?id=1ZMt2zgVXfq45RXlo9CkudZ1U78UrJsvT)
