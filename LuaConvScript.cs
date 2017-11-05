@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using MoonSharp.Interpreter;
+using System.Linq;
 
 public class LuaConvScript : MonoBehaviour
 {
@@ -43,7 +44,7 @@ public class LuaConvScript : MonoBehaviour
 
     private double marioX, marioY;
     private double rightmost = 0;
-    pool poolGlobal;
+    pool poolGlobal = null;
     // values from game that can be used
     //gmScript.health
     //gmScript.gameOver
@@ -54,12 +55,12 @@ public class LuaConvScript : MonoBehaviour
     // classes for Conv network
     class gene
     {
-        public double into;
+        public int into;
         // out is capitalized because out is keyword
-        public double Out;
+        public int Out;
         public double weight;
         public bool enabled;
-        public double innovation;
+        public int innovation;
 
         public gene()
         {
@@ -76,7 +77,7 @@ public class LuaConvScript : MonoBehaviour
         public double fitness = 0;
         public double adjustedFitness = 0;
         //network
-        public double maxneuron = 0;
+        public int maxneuron = 0;
         public double globalRank = 0;
         public Dictionary<string, double> mutationRates = new Dictionary<string, double>();
         public Dictionary<int, neuron> network = new Dictionary<int, neuron>();
@@ -115,50 +116,76 @@ public class LuaConvScript : MonoBehaviour
         public List<species> species;
         public int generation = 0;
         public int innovation;
-        public int currentSpecies = 1;
-        public int currentGenome = 1;
+        public int currentSpecies = 0;
+        public int currentGenome = 0;
         public int currentFrame = 0;
         public double maxFitness = 0;
         public pool(int Outputs)
         {
             innovation = Outputs;
+            species = new List<species>();
         }
     }
     class neuron
     {
-        public List<int> incoming;
+        public List<gene> incoming;
         public double value;
 
         public neuron()
         {
-            incoming = new List<int>();
+            incoming = new List<gene>();
             value = 0.0;
         }
     }
-
-    // Use this for initialization
-    void Start()
+    void Awake()
     {
+        DontDestroyOnLoad(this.gameObject);
+    }
+    void initStuff()
+    {
+        //Time.timeScale = 100f;
         pmScript = GameObject.FindGameObjectWithTag("Player").GetComponent<playerMovement>();
         gmScript = GameObject.FindGameObjectWithTag("GameManager").GetComponent<GameManager>();
         tsScript = GameObject.Find("trashLocation").GetComponent<trashSpawn>();
         // init params
         Outputs = ButtonNames.Count;
-        InputSize = (BoxRadius * 2 + 1) * (BoxRadius * 2 + 1);
+        InputSize = (BoxRadius * 2 + 1) * (BoxRadius * 2 + 1) + 3;
         Inputs = InputSize + 1;
         timeout = TimeoutConstant;
+    }
+    // Use this for initialization
+    void Start()
+    {
+        initStuff();
 
 
     }
     // Update is called once per frame
     void Update()
     {
+        if(pmScript == null)
+        {
+            initStuff();
+            if (pmScript == null)
+            {
+                return;
+            }
+        }
+        
         removeNull();
         getPositions();
-
-        poolGlobal = initializePool();
+        if(poolGlobal == null)
+        {
+            poolGlobal = initializePool();
+        }
+        
 
         species species = poolGlobal.species[poolGlobal.currentSpecies];
+        if(poolGlobal.currentGenome >= species.genomes.Count)
+        {
+            int x = 0;
+            //stop
+        }
         genome genome = species.genomes[poolGlobal.currentGenome];
 
         if (poolGlobal.currentFrame % 5 == 0)
@@ -202,8 +229,8 @@ public class LuaConvScript : MonoBehaviour
                 poolGlobal.maxFitness = fitness;
             }
 
-            poolGlobal.currentSpecies = 1;
-            poolGlobal.currentGenome = 1;
+            poolGlobal.currentSpecies = 0;
+            poolGlobal.currentGenome = 0;
             while (fitnessAlreadyMeasured(poolGlobal))
             {
                 nextGenome(poolGlobal);
@@ -308,7 +335,7 @@ public class LuaConvScript : MonoBehaviour
             count++;
         }
 
-        int n = Random.Range(1, count);
+        int n = Random.Range(0, count);
         foreach (var item in neurons)
         {
             n = n - 1;
@@ -331,7 +358,7 @@ public class LuaConvScript : MonoBehaviour
             }
             else
             {
-                geneLocal.weight = Random.Range(0.0f, 1.0f) * 4 - 2;
+                geneLocal.weight = Random.Range(0.0f, 1.0f) * 4f - 2f;
             }
         }
     }
@@ -381,7 +408,7 @@ public class LuaConvScript : MonoBehaviour
         if (candidates.Count == 0)
             return;
 
-        var gene = candidates[Random.Range(1, candidates.Count)];
+        var gene = candidates[Random.Range(0, candidates.Count)];
         gene.enabled = !gene.enabled;
     }
     void nodeMutate(genome g)
@@ -391,7 +418,7 @@ public class LuaConvScript : MonoBehaviour
 
         g.maxneuron = g.maxneuron + 1;
 
-        int rand = Random.Range(1, g.genes.Count);
+        int rand = Random.Range(0, g.genes.Count);
         var gene = g.genes[rand];
         if (!gene.enabled)
             return;
@@ -413,17 +440,16 @@ public class LuaConvScript : MonoBehaviour
     void mutate(genome g)
     {
         Random random = new Random();
-        // WRONG WAY TO ITERATE IN C#, GET LIST OF KEYS
-        foreach (KeyValuePair<string, double> entry in g.mutationRates)
+        List<string> keys = new List<string>(g.mutationRates.Keys);
+        foreach (string key in keys)
         {
-            // do something with entry.Value or entry.Key
             if (Mathf.RoundToInt(Random.Range(0, 2)) == 1)
             {
-                g.mutationRates[entry.Key] = .95 * entry.Value;
+                g.mutationRates[key] = .95 * g.mutationRates[key];
             }
             else
             {
-                g.mutationRates[entry.Key] = 1.05263 * entry.Value;
+                g.mutationRates[key] = 1.05263 * g.mutationRates[key];
             }
         }
         if (Random.Range(0.0f, 1.0f) < g.mutationRates["connections"])
@@ -523,6 +549,10 @@ public class LuaConvScript : MonoBehaviour
         int x = (int)Mathf.Floor((float)(marioX + dx + 8) / 16.0f);
 
         int y = (int)Mathf.Floor((float)(marioY + dy) / 16.0f);
+        if(x - pmScript.transform.position.x < 1.0f)
+        {
+            return 1;
+        }
         return 0;
     }
     // Could probably add sprites for powerups and 
@@ -580,15 +610,15 @@ public class LuaConvScript : MonoBehaviour
                         inputs.Add(-1);
                     }
                 }
-                for (int i = 0; i < sprites.Count; i++)
-                {
-                    double distx = Mathf.Abs(extSprites[i].position.x) - (marioX + (double)dx);
-                    double disty = Mathf.Abs(extSprites[i].position.y) - (marioY + (double)dy);
-                    if (distx <= 8 && disty <= 8)
-                    {
-                        inputs.Add(-1);
-                    }
-                }
+                //for (int i = 0; i < extSprites.Count; i++)
+                //{
+                //    double distx = Mathf.Abs(extSprites[i].position.x) - (marioX + (double)dx);
+                //    double disty = Mathf.Abs(extSprites[i].position.y) - (marioY + (double)dy);
+                //    if (distx <= 8 && disty <= 8)
+                //    {
+                //        inputs.Add(-1);
+                //    }
+                //}
             }
         }
         return inputs;
@@ -637,85 +667,393 @@ public class LuaConvScript : MonoBehaviour
     // Begin Daniel's Work
     void playTop()
     {
-        // to do
+        double maxFitness = 0f;
+        int maxs, maxg;
+        maxs = maxg = 0;
+        for (int i = 0; i < poolGlobal.species.Count; i++)
+        {
+            for (int j = 0; j < poolGlobal.species[i].genomes.Count; j++)
+            {
+                if (poolGlobal.species[i].genomes[j].fitness > maxFitness)
+                {
+                    maxFitness = poolGlobal.species[i].genomes[j].fitness;
+                    maxs = i;
+                    maxg = j;
+                }
+            }
+
+            poolGlobal.currentSpecies = maxs;
+            poolGlobal.currentGenome = maxg;
+            poolGlobal.maxFitness = maxFitness;
+
+            initializeRun(poolGlobal); // This may not make sense, are we going to restart the game each run?
+
+        }
     }
+
     void generateNetwork(genome gen)
     {
-        // to do
         Dictionary<int, neuron> network = new Dictionary<int, neuron>();
+        for (int i = 0; i < Inputs; i++)
+        {
+            network[i] = newNeuron();
+        }
+
+        for (int i = 0; i < Outputs; i++)
+        {
+            network[MaxNodes + i] = newNeuron();
+        }
+
+        gen.genes.Sort((x, y) => x.Out.CompareTo(y.Out));
+
+        for (int i = 0; i < gen.genes.Count; i++)
+        {
+            var gene = gen.genes[i];
+
+            if (gene.enabled)
+            {
+                if (network[gene.Out] == null)
+                {
+                    network[gene.Out] = new neuron();
+                }
+
+                var neuron = network[gene.Out];
+                neuron.incoming.Add(gene);
+
+                if (network[gene.into] == null)
+                {
+                    network[gene.into] = new neuron();
+                }
+
+            }
+
+            gen.network = network;
+        }
+
 
         gen.network = network;
     }
+
     Dictionary<string, bool> evaluateNetwork(Dictionary<int, neuron> network, List<int> inputs)
     {
-        // to do
+        inputs.Add(1);
+        Debug.Log(inputs.Count);
+        //if (inputs.Count != Inputs)
+        //{
+        //    Debug.Log("Incorrect number of neural network inputs");
+        //    return null;
+        //}
+
+        // originally when to Inputs (Inputs is supposed to equal inputs.Count
+        for (int i = 0; i < Inputs; i++)
+        {
+            network[i].value = inputs[i];
+        }
+        List<int> keys = new List<int>(network.Keys);
+        foreach (int key in keys)
+        {
+            double sum = 0;
+
+            for (int j = 0; j < network[key].incoming.Count; j++)
+            {
+                gene incoming = network[key].incoming[j];
+                neuron other = network[incoming.into];
+                sum = sum + incoming.weight * other.value;
+            }
+
+            if (network.Count > 0)
+            {
+                network[key].value = sigmoid(sum);
+            }
+        }
+
         Dictionary<string, bool> outputs = new Dictionary<string, bool>();
 
+        for (int o = 0; o < Outputs; o++)
+        {
+            string button = ButtonNames[o];
+            if (network[MaxNodes + o].value > 0)
+            {
+                outputs[button] = true;
+            }
+            else
+            {
+                outputs[button] = false;
+            }
+        }
 
         return outputs;
     }
-    genome crossover(gene g1, gene g2)
+
+    genome crossover(genome g1, genome g2)
     {
-        // to do
+        if (g2.fitness > g1.fitness)
+        {
+            genome tempg = g1;
+            g1 = g2;
+            g2 = tempg;
+        }
+
         genome child = newGenome();
+
+        List<gene> innovations2 = new List<gene>();
+
+        for (int i = 0; i < g2.genes.Count; i++)
+        {
+            gene gene = g2.genes[i];
+            innovations2[gene.innovation] = gene;
+        }
+
+        for (int i = 0; i < g1.genes.Count; i++)
+        {
+            gene gene1 = g1.genes[i];
+            gene gene2 = innovations2[gene1.innovation];
+            if (gene2 != null && Random.Range(1, 3) == 1 && gene2.enabled)
+            {
+                child.genes.Add(copyGene(gene2));
+            }
+            else
+            {
+                child.genes.Add(copyGene(gene1));
+            }
+        }
+
+        child.maxneuron = Mathf.Max(g1.maxneuron, g2.maxneuron);
+        List<string> keys = new List<string>(g1.mutationRates.Keys);
+        foreach (string key in keys)
+        {
+            child.mutationRates[key] = g1.mutationRates[key];
+        }
 
         return child;
     }
+
     double weights(List<gene> genes1, List<gene> genes2)
     {
-        // to do
-        return 0;
+        List<gene> i2 = new List<gene>();
+
+        for (int i = 0; i < genes2.Count; i++)
+        {
+            gene gene = genes2[i];
+            i2[gene.innovation] = gene;
+        }
+
+        float sum = 0;
+        float coincident = 0;
+
+        for (int i = 0; i < genes1.Count; i++)
+        {
+            gene gene = genes1[i];
+            if (i2[gene.innovation] != null)
+            {
+                gene gene2 = i2[gene.innovation];
+                sum = sum + Mathf.Abs((float)gene.weight - (float)gene2.weight);
+                coincident = coincident + 1;
+            }
+        }
+
+        return sum / coincident;
     }
-    double sameSpecies(genome gen1, genome gen2)
+
+    bool sameSpecies(genome gen1, genome gen2)
     {
-        // to do
-        return 0;
+        double dd = DeltaDisjoint * disjoint(gen1.genes, gen2.genes);
+        double dw = DeltaWeights * weights(gen1.genes, gen2.genes);
+        return (dd + dw) < DeltaThreshold;
     }
+
     void calculateAverageFitness(species species)
     {
-        // to do
+        double total = 0;
+
+        for (int g = 0; g < species.genomes.Count; g++)
+        {
+            genome genome = species.genomes[g];
+            total = total + genome.globalRank;
+        }
     }
+
     double totalAverageFitness()
     {
-        // to do
-        return 0;
+        double total = 0;
+        for (int i = 0; i < poolGlobal.species.Count; i++)
+        {
+            species species = poolGlobal.species[i];
+            total = total + species.averageFitness;
+        }
+
+        return total;
     }
     // END Daniel's Work
 
 
-    // Being Dustin's Work
     void rankGlobally()
     {
-        // to do
+        List<genome> global = new List<genome>(); //This called for a local arraylist..
+        for (int s = 0; s < poolGlobal.species.Count; s++)
+        {
+            species species = poolGlobal.species[s];
+            for (int g = 0; g < species.genomes.Count; g++)
+            {
+                global.Add(species.genomes[g]);
+            }
+        }
+        List<genome> sortedGlobal = global.OrderBy(o => o.fitness).ToList();
+        for(int i = 0; i < sortedGlobal.Count;i++)
+        {
+            sortedGlobal[i].globalRank = i;
+        }
     }
     void cullSpecies(bool cutToOne)
     {
-        // to do
+        pool pool = poolGlobal;
+        for (int s = 0; s < pool.species.Count; s++)
+        {
+            species sp = pool.species[s];
+
+            /* LUA
+			global.sort(species.genomes, function (a,b)
+				return (a.fitness > b.fitness)
+				end)
+			*/
+            List<genome> sortedGenomes = sp.genomes.OrderBy(o => o.fitness).ToList();
+            sp.genomes = sortedGenomes;
+            double remaining = Mathf.Ceil(sp.genomes.Count / 2);
+            if (cutToOne)
+            {
+                remaining = 1;
+            }
+            while (sp.genomes.Count > remaining)
+            {
+                sp.genomes.RemoveAt(sp.genomes.Count-1);
+            }
+        }
     }
-    species breedChild(species species)
+    genome breedChild(species species)
     {
-        // to do
-        return new species();
+        genome child;
+        if (Random.Range(0f, 1f) < CrossoverChance)
+        {
+            genome g1 = species.genomes[Random.Range(0, species.genomes.Count)];
+            genome g2 = species.genomes[Random.Range(0, species.genomes.Count)];
+            child = crossover(g1, g2);
+        }
+        else
+        {
+            genome g = species.genomes[Random.Range(0, species.genomes.Count)];
+            child = copyGenome(g);
+        }
+        mutate(child);
+        return child;
     }
     void removeStaleSpecies()
     {
-        // to do
+        pool pool = poolGlobal;
+        List<species> survived = new List<species>();
+        for (int s = 0; s < pool.species.Count; s++)
+        {
+            species sp = pool.species[s];
+
+            /*
+			 global.sort(species.genomes, function (a,b)
+			return (a.fitness > b.fitness)
+			end)
+			*/
+            if (sp.genomes[1].fitness > sp.topFitness)
+            {
+                sp.topFitness = sp.genomes[1].fitness;
+                sp.staleness = 0;
+            }
+            else
+            {
+                sp.staleness = sp.staleness + 1;
+            }
+            if (sp.staleness < StaleSpecies || sp.topFitness >= pool.maxFitness)
+            {
+                survived.Add(sp);
+            }
+        }
+        pool.species = survived;
     }
     void removeWeakSpecies()
     {
-        // to do
+        pool pool = poolGlobal;
+
+        List<species> survived = new List<species>();
+        float sum = (float)totalAverageFitness();
+        for (int s = 0; s < pool.species.Count; s++)
+        {
+            species sp = pool.species[s];
+            double breed = Mathf.Floor((float)sp.averageFitness / sum * Population);
+
+            if (breed >= 1)
+            {
+                survived.Add(sp);
+            }
+        }
+        pool.species = survived;
     }
     void addToSpecies(genome child)
     {
-        // to do
+        pool pool = poolGlobal;
+        bool foundSpecies = false;
+        for (int s = 0; s < pool.species.Count; s++)
+        {
+            species sp = pool.species[s];
+            if (!foundSpecies && sameSpecies(child, sp.genomes[0]))
+            {
+                sp.genomes.Add(child);
+                foundSpecies = true;
+            }
+        }
+        if (!foundSpecies)
+        {
+            species childSpecies = newSpecies();
+            childSpecies.genomes.Add(child);
+            pool.species.Add(childSpecies);
+        }
     }
     void newGeneration()
     {
-        // to do
+        pool pool = poolGlobal;
+
+        cullSpecies(false);
+        rankGlobally();
+        removeStaleSpecies();
+        rankGlobally();
+        for (int s = 0; s < pool.species.Count; s++)
+        {
+            species sp = pool.species[s];
+            calculateAverageFitness(sp);
+        }
+        removeWeakSpecies();
+        double sum = totalAverageFitness();
+        List<genome> children = new List<genome>();
+        for (int s = 0; s < pool.species.Count; s++)
+        {
+            species sp = pool.species[s];
+            double breed = Mathf.Floor((float)sp.averageFitness / (float)sum * Population) - 1;
+            for (int i = 0; i < breed; i++)
+            {
+                children.Add(breedChild(sp));
+            }
+        }
+        cullSpecies(true);
+        while (children.Count + pool.species.Count < Population)
+        {
+            species sp = pool.species[Random.Range(0, pool.species.Count)];
+            children.Add(breedChild(sp));
+        }
+        for (int c = 0; c < children.Count; c++)
+        {
+            genome child = children[c];
+            addToSpecies(child);
+        }
+        pool.generation = pool.generation + 1;
     }
     void clearJoypad()
     {
-        // to do
+        state = 0;
     }
 
     // End 8=Dustin's Work
@@ -723,7 +1061,7 @@ public class LuaConvScript : MonoBehaviour
     // BEING Scott's Work
     pool initializePool()
     {
-        pool pool = new pool(Outputs);
+        poolGlobal = new pool(Outputs);
 
         for (int i = 0; i < Population; i++)
         {
@@ -731,8 +1069,8 @@ public class LuaConvScript : MonoBehaviour
             addToSpecies(basic);
         }
 
-        initializeRun(pool);
-        return pool;
+        initializeRun(poolGlobal);
+        return poolGlobal;
     }
 
     void initializeRun(pool pool)
@@ -743,17 +1081,10 @@ public class LuaConvScript : MonoBehaviour
         pool.currentFrame = 0;
         timeout = TimeoutConstant;
         clearJoypad();
-        species species = null;
-        if (pool.species != null)
-        {
-            species = pool.species[pool.currentSpecies];
-        }
+        species species = pool.species[pool.currentSpecies];
         
-        genome genome;
-        if (species != null)
-        {
-            genome = species.genomes[pool.currentGenome];
-        }
+        genome genome = species.genomes[pool.currentGenome];
+        generateNetwork(genome);
         evaluateCurrent(pool);
     }
 
@@ -765,32 +1096,35 @@ public class LuaConvScript : MonoBehaviour
         List<int> inputs = getInputs();
         Dictionary<string, bool> controller = evaluateNetwork(genome.network, inputs);
 
-        if (controller["P1 Left"] && controller["P1 Right"])
-        {
-            controller["P1 Left"] = false;
-            controller["P1 Right"] = false;
-        }
-        if (controller["P1 Up"] && controller["P1 Down"])
-        {
-            controller["P1 Up"] = false;
-            controller["P1 Down"] = false;
-        }
+        //if (controller != null && controller["Left"] && !controller["Right"])
+        //{
+        //    state = 1;
+        //}
+        //else if (controller != null && !controller["Left"] && controller["Right"])
+        //{
+        //    state = 2;
+        //}
+        //else
+        //{
+        //    state = 0;
+        //}
 
         //Is there a joypad class? Where is this in our current stuff??
         //joypad.set(controller);
+
     }
 
     void nextGenome(pool pool)
     {
         pool.currentGenome = pool.currentGenome + 1;
-        if (pool.currentGenome > pool.species[pool.currentSpecies].genomes.Count)
+        if (pool.currentGenome >= pool.species[pool.currentSpecies].genomes.Count)
         {
-            pool.currentGenome = 1;
+            pool.currentGenome = 0;
             pool.currentSpecies = pool.currentSpecies + 1;
             if (pool.currentSpecies > pool.species.Count)
             {
                 newGeneration();
-                pool.currentSpecies = 1;
+                pool.currentSpecies = 0;
             }
         }
     }
